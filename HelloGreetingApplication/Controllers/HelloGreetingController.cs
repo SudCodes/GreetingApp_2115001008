@@ -153,5 +153,32 @@ namespace HelloGreetingApplication.Controllers
             }
 
         }
+
+        [HttpPost]
+        [Route("GetGreeting")]
+        public IActionResult Greeting([FromBody] GreetingRequestModel greetingRequest)
+        {
+            try
+            {
+                _logger.LogInformation("Starting process of getting greeting");
+                ResponseModel<string> responceModel = new ResponseModel<string>();
+                string greetingMsg = _greetingBL.GetGreetingBL(greetingRequest);
+                responceModel.Success = true;
+                responceModel.Message = "Greeting Successful";
+                responceModel.Data = greetingMsg;
+                _logger.LogInformation("Greeting successfull");
+                return Ok(responceModel);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError($"Error occured while getting greeting {ex.Message}");
+                ResponseModel<string> responceModel = new ResponseModel<string>();
+                responceModel.Success = false;
+                responceModel.Message = "OOPS error occured";
+                responceModel.Data = ex.Message;
+
+                return BadRequest(responceModel);
+            }
+        }
     }
 }
