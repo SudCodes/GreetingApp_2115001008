@@ -58,7 +58,6 @@ namespace BusinessLayer.Service
             return _greetingRL.GetGreetingByIdRL(Id);
         }
 
-        //UC6
 
         //UC6
 
@@ -72,6 +71,21 @@ namespace BusinessLayer.Service
                     Id = g.Id,
                     Message = g.Message
                 }).ToList();  // Converting List of Entity to List of Model
+            }
+            return null;
+        }
+
+        //UC7
+        public GreetingModel EditGreetingBL(int id, GreetingModel greetingModel)
+        {
+            var result = _greetingRL.EditGreetingRL(id, greetingModel); // Calling Repository Layer
+            if (result != null)
+            {
+                return new GreetingModel()
+                {
+                    Id = result.Id,
+                    Message = result.Message
+                };
             }
             return null;
         }
