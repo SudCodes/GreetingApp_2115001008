@@ -180,5 +180,26 @@ namespace HelloGreetingApplication.Controllers
                 return BadRequest(responceModel);
             }
         }
+
+
+        //UC4
+
+        [HttpPost]
+        [Route("save")]
+
+        public IActionResult SaveGreeting([FromBody] GreetingModel greetingModel)
+        {
+            var result = _greetingBL.SaveGreetingBL(greetingModel);
+
+            var response = new ResponseModel<object>
+            {
+                Success = true,
+                Message = "Greeting Created",
+                Data = result
+
+            };
+            return Created("Greeting Created", response);
+
+        }
     }
 }
