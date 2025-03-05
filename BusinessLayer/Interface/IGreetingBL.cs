@@ -14,5 +14,6 @@ namespace BusinessLayer.Interface
         string GetGreetingBL(GreetingRequestModel greetingRequest);
 
         GreetEntity SaveGreetingBL(GreetingModel greetingModel);
+        GreetingModel GetGreetingByIdBL(int Id);
     }
 }
