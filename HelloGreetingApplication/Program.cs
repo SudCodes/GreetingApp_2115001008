@@ -1,64 +1,77 @@
+using NLog;
 using BusinessLayer.Interface;
 using BusinessLayer.Service;
-using Microsoft.EntityFrameworkCore;
-using RepositoryLayer.Context;
 using RepositoryLayer.Interface;
 using RepositoryLayer.Service;
+using Microsoft.OpenApi.Models;
+using Microsoft.EntityFrameworkCore;
+using RepositoryLayer.Context;
+using NLog.Web;
 
-var builder = WebApplication.CreateBuilder(args);
+var logger = LogManager.Setup().GetCurrentClassLogger();
+logger.Info("Starting up the application");
 
-// Retrieve connection string
-var connectionString = builder.Configuration.GetConnectionString("GreetingAppDB");
-
-Console.WriteLine($"Connection String: {connectionString}"); // Debugging output
-
-if (string.IsNullOrEmpty(connectionString))
+try
 {
-    throw new InvalidOperationException("Connection string 'GreetingAppDB' not found in appsettings.json.");
+    var builder = WebApplication.CreateBuilder(args);
+
+    // Load NLog configuration
+    builder.Logging.ClearProviders();
+    builder.Host.UseNLog();
+
+    // Retrieve connection string
+    var connectionString = builder.Configuration.GetConnectionString("GreetingAppDB");
+
+    Console.WriteLine($"Connection String: {connectionString}"); // Debugging output
+
+    if (string.IsNullOrEmpty(connectionString))
+    {
+        throw new InvalidOperationException("Connection string 'GreetingAppDB' not found in appsettings.json.");
+    }
+
+    // Register services
+    builder.Services.AddControllers();
+
+    // Register DbContext
+    builder.Services.AddDbContext<GreetingAppContext>(options =>
+        options.UseSqlServer(connectionString));
+
+    builder.Services.AddScoped<IGreetingBL, GreetingBL>();
+    builder.Services.AddScoped<IGreetingRL, GreetingRL>();
+    builder.Services.AddScoped<IUserBL, UserBL>();
+    builder.Services.AddScoped<IUserRL, UserRL>();
+
+
+    // Configure Swagger
+    builder.Services.AddEndpointsApiExplorer();
+    builder.Services.AddSwaggerGen(c =>
+    {
+        c.SwaggerDoc("v1", new OpenApiInfo { Title = "User Registration API", Version = "v1" });
+    });
+
+    var app = builder.Build();
+
+    // Enable Swagger UI
+    if (app.Environment.IsDevelopment())
+    {
+        app.UseDeveloperExceptionPage();
+        app.UseSwagger();
+        app.UseSwaggerUI(c => c.SwaggerEndpoint("/swagger/v1/swagger.json", "User Registration API v1"));
+    }
+
+    // Configure the HTTP request pipeline
+    app.UseHttpsRedirection();
+    app.UseAuthorization();
+    app.MapControllers();
+
+    app.Run();
 }
-
-// Register services
-builder.Services.AddControllers();
-
-// Register DbContext
-builder.Services.AddDbContext<GreetingAppContext>(options =>
-    options.UseSqlServer(connectionString));
-
-
-
-
-//Logger
-builder.Logging.ClearProviders();//clearing all the pre defined outputs of logger
-builder.Logging.AddConsole();//logs to the console
-builder.Logging.AddDebug();//loogs to the debug console window
-
-builder.Services.AddControllers();
-//Adding services of business layer
-builder.Services.AddScoped<IGreetingBL, GreetingBL>();
-//Adding services of repository layer
-builder.Services.AddScoped<IGreetingRL, GreetingRL>();
-
-//Add swagger to the container
-builder.Services.AddEndpointsApiExplorer();
-
-builder.Services.AddSwaggerGen();
-
-
-
-var app = builder.Build();
-
-if (app.Environment.IsDevelopment())
+catch (Exception ex)
 {
-    app.UseSwagger();//using Swagger
-    app.UseSwaggerUI();// responsible for colorfullness
+    logger.Error(ex, "Application startup failed.");
+    throw;
 }
-
-// Configure the HTTP request pipeline.
-
-app.UseHttpsRedirection();
-
-app.UseAuthorization();
-
-app.MapControllers();
-
-app.Run();
+finally
+{
+    LogManager.Shutdown();
+}
