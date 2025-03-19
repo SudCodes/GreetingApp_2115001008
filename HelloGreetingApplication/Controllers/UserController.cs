@@ -2,7 +2,6 @@
 using ModelLayer.DTO;
 using NLog;
 using BusinessLayer.Interface;
-using Microsoft.Extensions.Logging;
 
 namespace HelloGreetingApplication.Controllers
 {
@@ -44,22 +43,27 @@ namespace HelloGreetingApplication.Controllers
         }
 
         [HttpPost("loginUser")]
-        public IActionResult PostData(LoginDTO loginDTO)
+        public IActionResult Login(LoginDTO loginDTO)
         {
             try
             {
                 _logger.Info($"Login attempt for user: {loginDTO.Email}");
 
-                var user = _userBL.LoginnUserBL(loginDTO);
+                var (user, token) = _userBL.LoginnUserBL(loginDTO);
 
-                if (user == null)
+                if (user == null || string.IsNullOrEmpty(token))
                 {
                     _logger.Warn($"Invalid login attempt for user: {loginDTO.Email}");
                     return Unauthorized(new { Success = false, Message = "Invalid username or password." });
                 }
 
                 _logger.Info($"User {loginDTO.Email} logged in successfully.");
-                return Ok(new { Success = true, Message = "Login Successful." });
+                return Ok(new
+                {
+                    Success = true,
+                    Message = "Login Successful.",
+                    Token = token
+                });
             }
             catch (Exception ex)
             {
@@ -67,5 +71,6 @@ namespace HelloGreetingApplication.Controllers
                 return BadRequest(new { Success = false, Message = "Login failed.", Error = ex.Message });
             }
         }
+
     }
 }
