@@ -4,7 +4,6 @@ using RepositoryLayer.Entity;
 using System.Security.Claims;
 using System.IdentityModel.Tokens.Jwt;
 using Microsoft.Extensions.Configuration;
-using Microsoft.IdentityModel.JsonWebTokens;
 
 namespace Middleware.JwtHelper
 {
@@ -46,8 +45,8 @@ namespace Middleware.JwtHelper
 
             var claims = new[]
             {
-                new Claim(Microsoft.IdentityModel.JsonWebTokens.JwtRegisteredClaimNames.Sub, user.Email),
-                new Claim(Microsoft.IdentityModel.JsonWebTokens.JwtRegisteredClaimNames.Jti, Guid.NewGuid().ToString()),
+                new Claim(JwtRegisteredClaimNames.Sub, user.Email),
+                new Claim(JwtRegisteredClaimNames.Jti, Guid.NewGuid().ToString()),
                 new Claim("userId", user.UserId.ToString()),
                 new Claim("email", user.Email)
             };
@@ -61,6 +60,80 @@ namespace Middleware.JwtHelper
             );
 
             return new JwtSecurityTokenHandler().WriteToken(token);
+        }
+        // 🔹 Generate Password Reset Token
+        public string GeneratePasswordResetToken(string email)
+        {
+            if (string.IsNullOrEmpty(email))
+                throw new ArgumentNullException(nameof(email), "Email cannot be null or empty.");
+
+            var key = _configuration["JwtSettings:Key"];
+            var issuer = _configuration["JwtSettings:Issuer"];
+            var audience = _configuration["JwtSettings:Audience"];
+
+            if (string.IsNullOrEmpty(key))
+                throw new ArgumentException("JWT SecretKey is missing or empty.");
+
+            var securityKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(key));
+            var credentials = new SigningCredentials(securityKey, SecurityAlgorithms.HmacSha256);
+
+            var claims = new[]
+            {
+                new Claim(JwtRegisteredClaimNames.Sub, email),
+                new Claim(JwtRegisteredClaimNames.Jti, Guid.NewGuid().ToString()),
+                new Claim(ClaimTypes.Email, email),
+                new Claim("isPasswordReset", "true")
+            };
+
+            var token = new JwtSecurityToken(
+                issuer: issuer,
+                audience: audience,
+                claims: claims,
+                expires: DateTime.UtcNow.AddHours(1),
+                signingCredentials: credentials
+            );
+
+            return new JwtSecurityTokenHandler().WriteToken(token);
+        }
+
+        // 🔹 Validate Token and Extract Claims
+        public ClaimsPrincipal ValidateToken(string token)
+        {
+            if (string.IsNullOrEmpty(token))
+                throw new ArgumentNullException(nameof(token), "Token cannot be null or empty.");
+
+            var key = _configuration["JwtSettings:Key"];
+            var issuer = _configuration["JwtSettings:Issuer"];
+            var audience = _configuration["JwtSettings:Audience"];
+
+            if (string.IsNullOrEmpty(key))
+                throw new ArgumentException("JWT SecretKey is missing or empty.");
+
+            var securityKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(key));
+            var tokenHandler = new JwtSecurityTokenHandler();
+            var validationParams = new TokenValidationParameters
+            {
+                ValidateIssuer = true,
+                ValidateAudience = true,
+                ValidateLifetime = true,
+                ValidateIssuerSigningKey = true,
+                ValidIssuer = issuer,
+                ValidAudience = audience,
+                IssuerSigningKey = securityKey
+            };
+
+            try
+            {
+                return tokenHandler.ValidateToken(token, validationParams, out SecurityToken validatedToken);
+            }
+            catch (SecurityTokenExpiredException)
+            {
+                return null;
+            }
+            catch (Exception)
+            {
+                return null;
+            }
         }
     }
 }

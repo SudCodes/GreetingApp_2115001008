@@ -1,7 +1,7 @@
 ﻿using System;
 using System.Linq;
 using Microsoft.EntityFrameworkCore;
-using Microsoft.Extensions.Logging; 
+using Microsoft.Extensions.Logging; // ✅ Correct Logging
 using ModelLayer.DTO;
 using RepositoryLayer.Entity;
 using RepositoryLayer.Context;
@@ -13,7 +13,7 @@ namespace RepositoryLayer.Service
 {
     public class UserRL : IUserRL
     {
-        private readonly ILogger<UserRL> _logger; 
+        private readonly ILogger<UserRL> _logger; // ✅ Use ILogger<UserRL>
         private readonly GreetingAppContext _dbContext;
 
         public UserRL(ILogger<UserRL> logger, GreetingAppContext dbContext)
@@ -84,6 +84,29 @@ namespace RepositoryLayer.Service
                 _logger.LogError(ex, "Error occurred during login for {Email}", loginDTO.Email);
                 throw;
             }
+        }
+
+        public bool ValidateEmail(string email)
+        {
+            var data = _dbContext.Users.FirstOrDefault(e => e.Email == email);
+
+            if (data == null)
+            {
+                return false;
+            }
+            return true;
+        }
+
+        public UserEntity FindByEmail(string email)
+        {
+            return _dbContext.Users.FirstOrDefault(e => e.Email == email);
+        }
+
+        public bool Update(UserEntity user)
+        {
+            _dbContext.Users.Update(user);
+            _dbContext.SaveChanges();
+            return true;
         }
     }
 }

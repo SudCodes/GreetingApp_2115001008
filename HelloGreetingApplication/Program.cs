@@ -49,6 +49,9 @@ try
     builder.Services.AddScoped<IGreetingRL, GreetingRL>();
     builder.Services.AddScoped<IUserBL, UserBL>();
     builder.Services.AddScoped<IUserRL, UserRL>();
+    // Register SMTP Middleware
+
+    builder.Services.AddScoped<Middleware.Email.SMTP>();
 
     // ? Register JwtTokenHelper as Singleton (Best practice)
     builder.Services.AddSingleton<JwtTokenHelper>();
